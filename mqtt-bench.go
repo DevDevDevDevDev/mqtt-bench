@@ -100,13 +100,13 @@ func CreateClientTlsConfig(rootCAFile string, clientCertFile string, clientKeyFi
 }
 
 // 実行する。
-func Execute(exec func(clients []*MQTT.Client, opts ExecOptions, param ...string) int, opts ExecOptions) {
+func Execute(exec func(clients []MQTT.Client, opts ExecOptions, param ...string) int, opts ExecOptions) {
 	message := CreateFixedSizeMessage(opts.MessageSize)
 
 	// 配列を初期化
 	DefaultHandlerResults = make([]*SubscribeResult, opts.ClientNum)
 
-	clients := make([]*MQTT.Client, opts.ClientNum)
+	clients := make([]MQTT.Client, opts.ClientNum)
 	hasErr := false
 	for i := 0; i < opts.ClientNum; i++ {
 		client := Connect(i, opts)
@@ -151,7 +151,7 @@ func Execute(exec func(clients []*MQTT.Client, opts ExecOptions, param ...string
 
 // 全クライアントに対して、publishの処理を行う。
 // 送信したメッセージ数を返す（原則、クライアント数分となる）。
-func PublishAllClient(clients []*MQTT.Client, opts ExecOptions, param ...string) int {
+func PublishAllClient(clients []MQTT.Client, opts ExecOptions, param ...string) int {
 	message := param[0]
 
 	wg := new(sync.WaitGroup)
@@ -198,7 +198,7 @@ func Publish(client MQTT.Client, topic string, qos byte, retain bool, message st
 // 全クライアントに対して、subscribeの処理を行う。
 // 指定されたカウント数分、メッセージを受信待ちする（メッセージが取得できない場合はカウントされない）。
 // この処理では、Publishし続けながら、Subscribeの処理を行う。
-func SubscribeAllClient(clients []*MQTT.Client, opts ExecOptions, param ...string) int {
+func SubscribeAllClient(clients []MQTT.Client, opts ExecOptions, param ...string) int {
 	wg := new(sync.WaitGroup)
 
 	results := make([]*SubscribeResult, len(clients))
@@ -263,7 +263,7 @@ func Subscribe(client MQTT.Client, topic string, qos byte) *SubscribeResult {
 	var result *SubscribeResult = &SubscribeResult{}
 	result.Count = 0
 
-	var handler MQTT.MessageHandler = func(client *MQTT.Client, msg MQTT.Message) {
+	var handler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 		result.Count++
 		if Debug {
 			fmt.Printf("Received message : topic=%s, message=%s\n", msg.Topic(), msg.Payload())
@@ -292,7 +292,7 @@ func CreateFixedSizeMessage(size int) string {
 
 // 指定されたBrokerへ接続し、そのMQTTクライアントを返す。
 // 接続に失敗した場合は nil を返す。
-func Connect(id int, execOpts ExecOptions) *MQTT.Client {
+func Connect(id int, execOpts ExecOptions) MQTT.Client {
 
 	// 複数プロセスで、ClientIDが重複すると、Broker側で問題となるため、
 	// プロセスIDを利用して、IDを割り振る。
@@ -330,7 +330,7 @@ func Connect(id int, execOpts ExecOptions) *MQTT.Client {
 		var result *SubscribeResult = &SubscribeResult{}
 		result.Count = 0
 
-		var handler MQTT.MessageHandler = func(client *MQTT.Client, msg MQTT.Message) {
+		var handler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 			result.Count++
 			if Debug {
 				fmt.Printf("Received at defaultHandler : topic=%s, message=%s\n", msg.Topic(), msg.Payload())
@@ -353,7 +353,7 @@ func Connect(id int, execOpts ExecOptions) *MQTT.Client {
 }
 
 // 非同期でBrokerとの接続を切断する。
-func AsyncDisconnect(clients []*MQTT.Client) {
+func AsyncDisconnect(clients []MQTT.Client) {
 	wg := new(sync.WaitGroup)
 
 	for _, client := range clients {
