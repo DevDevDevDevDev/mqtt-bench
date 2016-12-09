@@ -107,26 +107,17 @@ func Execute(exec func(clients []MQTT.Client, opts ExecOptions, param ...string)
 	DefaultHandlerResults = make([]*SubscribeResult, opts.ClientNum)
 
 	clients := make([]MQTT.Client, opts.ClientNum)
-	hasErr := false
+	size := 0
 	for i := 0; i < opts.ClientNum; i++ {
 		client := Connect(i, opts)
-		if client == nil {
-			hasErr = true
-			break
+		if client != nil {
+			clients[size] = client
+			size++
 		}
-		clients[i] = client
 	}
 
-	// 接続エラーがあれば、接続済みのクライアントの切断処理を行い、処理を終了する。
-	if hasErr {
-		for i := 0; i < len(clients); i++ {
-			client := clients[i]
-			if client != nil {
-				Disconnect(client)
-			}
-		}
-		return
-	}
+	clients = clients[:size]
+
 
 	// 安定させるために、一定時間待機する。
 	time.Sleep(time.Duration(opts.PreTime) * time.Millisecond)
@@ -166,7 +157,7 @@ func PublishAllClient(clients []MQTT.Client, opts ExecOptions, param ...string) 
 			defer wg.Done()
 
 			for index := 0; index < opts.Count; index++ {
-				topic := fmt.Sprintf(opts.Topic+"/%d", clientId)
+				topic := fmt.Sprintf(opts.Topic + "/%d", clientId)
 
 				if Debug {
 					fmt.Printf("Publish : id=%d, count=%d, topic=%s\n", clientId, index, topic)
@@ -206,7 +197,7 @@ func SubscribeAllClient(clients []MQTT.Client, opts ExecOptions, param ...string
 		wg.Add(1)
 
 		client := clients[id]
-		topic := fmt.Sprintf(opts.Topic+"/%d", id)
+		topic := fmt.Sprintf(opts.Topic + "/%d", id)
 
 		results[id] = Subscribe(client, topic, opts.Qos)
 
@@ -235,7 +226,7 @@ func SubscribeAllClient(clients []MQTT.Client, opts ExecOptions, param ...string
 				}
 
 				// 無限ループを避けるため、指定されたCountの100倍に達したら、エラーで終了する。
-				if loop >= opts.Count*100 {
+				if loop >= opts.Count * 100 {
 					panic("Subscribe error : Not finished in the max count. It may not be received the message.")
 				}
 			}
@@ -321,7 +312,7 @@ func Connect(id int, execOpts ExecOptions) MQTT.Client {
 		tlsConfig := CreateClientTlsConfig(c.RootCAFile, c.ClientCertFile, c.ClientKeyFile)
 		opts.SetTLSConfig(tlsConfig)
 	default:
-		// do nothing.
+	// do nothing.
 	}
 
 	if execOpts.UseDefaultHandler == true {
