@@ -187,7 +187,7 @@ func PublishAllClient(clients []*MQTT.Client, opts ExecOptions, param ...string)
 }
 
 // メッセージを送信する。
-func Publish(client *MQTT.Client, topic string, qos byte, retain bool, message string) {
+func Publish(client MQTT.Client, topic string, qos byte, retain bool, message string) {
 	token := client.Publish(topic, qos, retain, message)
 
 	if token.Wait() && token.Error() != nil {
@@ -259,7 +259,7 @@ type SubscribeResult struct {
 }
 
 // メッセージを受信する。
-func Subscribe(client *MQTT.Client, topic string, qos byte) *SubscribeResult {
+func Subscribe(client MQTT.Client, topic string, qos byte) *SubscribeResult {
 	var result *SubscribeResult = &SubscribeResult{}
 	result.Count = 0
 
@@ -368,7 +368,7 @@ func AsyncDisconnect(clients []*MQTT.Client) {
 }
 
 // Brokerとの接続を切断する。
-func Disconnect(client *MQTT.Client) {
+func Disconnect(client MQTT.Client) {
 	client.Disconnect(10)
 }
 
